@@ -1,0 +1,59 @@
+
+
+1) Open a terminal and run cAdvisor with either docker or podman:
+
+Docker:
+
+  $ docker run \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:rw \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --volume=/dev/disk/:/dev/disk:ro \
+  --publish=8080:8080 \
+  --detach=true \
+  --name=cadvisor \
+  gcr.io/cadvisor/cadvisor:v0.49.1
+
+Podman:
+
+  $ sudo systemctl start podman.socket 
+  $ sudo podman run -d --name cadvisor   --volume /:/rootfs:ro   --volume /dev/disk/:/dev/disk:ro   --volume /etc/machine-id:/etc/machine-id:ro   --volume /sys:/sys:ro   --volume /sys/fs/cgroup:/sys/fs/cgroup:ro   --volume /var/lib/containers:/var/lib/containers:ro   --volume /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro   --volume /var/run:/var/run:rw  --privileged   -p 8080:8080   gcr.io/cadvisor/cadvisor:v0.49.1  --podman="unix:///var/run/podman/podman.sock"
+  
+2) Launch any additional container, for example nginx: 
+  
+  Docker:
+  
+  $ docker run --name nginx -d docker.io/library/nginx
+  
+  Podman:
+  
+  $ sudo podman run --name nginx -p 8888:80 -d docker.io/library/nginx
+  
+3) Visit http://localhost:8080/metrics to show the full list of metrics exposed by cAdvisor. The container metrics are prefixed with 'container_'.
+
+4) Visit http://localhost:8080 to show cAdvisor
+
+  Open a new tab in your browser and after visiting http://localhost:8888 refresh the page a few times, and then check back the tab where cAdvisor web interface is running to watch the changes in traffic/load in "real time".651808940
+
+5) cAdvisor's web UI is a useful interface for exploring the kinds of things that cAdvisor monitors, but it doesn't provide an interface for exploring container metrics.
+
+For that, enter into Prmetheus expressin brwser at: http://localhost:9090/graph and let's explore the following expressions/metrics:
+
+  5.1) Start time of cadvisor and webserver container:
+
+  container_start_time_seconds{name="cadvisor"}
+  container_start_time_seconds{name="webserver"}
+
+  5.2) The cgroup's CPU usage in the last minute for the cadvisor container:
+
+  rate(container_cpu_usage_seconds_total{name="cadvisor"}[1m])
+
+  5.3) Bytes transmitted over the network by the container per second in the last minute (all containers)
+
+  rate(container_network_transmit_bytes_total[1m])
+
+  5.4) Bytes received over the network by the container per second in the last minute
+
+  rate(container_network_receive_bytes_total[1m])
+ 
